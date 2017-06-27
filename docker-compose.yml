@@ -1,0 +1,18 @@
+version: '2'
+services:
+  apache2:
+    build:
+      context: https://raw.githubusercontent.com/fa2mm/docker-ubuntu16.04/master/apache2/Dockerfile
+      args:
+        web_path: ${WEB_PATH}
+        x_send_file_path: ${X_SEND_FILE_PATH}
+        internal_port: ${INTERNAL_APACHE_PORT}
+    networks:
+      - local_network
+    tty: true
+    restart: always
+    ports:
+      - ${EXTERNAL_APACHE_PORT}:${INTERNAL_APACHE_PORT}
+networks:
+  local_network:
+      driver: bridge

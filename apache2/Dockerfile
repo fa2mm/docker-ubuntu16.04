@@ -2,34 +2,38 @@ FROM fa2m/ubuntu16.04
 
 MAINTAINER fa2m
 
-ARG mysql_root_pass
+ARG web_path
+ARG x_send_file_path
+ARG internal_port
 
 # install php and php-extensions
 RUN apt -y install apache2 \
+    libapache2-mod-xsendfile \
     && rm -rf /var/lib/apt/lists/*
 
 # enable mod_rewrite
 RUN a2enmod rewrite
 
 # setup hosts file
-RUN VHOST=$(cat <<EOF
-<VirtualHost *:80>
-    DocumentRoot "/var/www/sitesearch/app/web/"
-    XSendFile On
-    XSendFilePath /var/www/sitesearch/app/data/
-    <Directory "/var/www/">
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
-EOF
-) && echo "${VHOST}" > /etc/apache2/sites-available/000-default.conf
+ENV VHOST="<VirtualHost *:${internal_port}> \n\
+    DocumentRoot \"${web_path}\" \n\
+    XSendFile On \n\
+    XSendFilePath \"${x_send_file_path}\" \n\
+    <Directory \"/var/www/\"> \n\
+        AllowOverride All \n\
+        Require all granted \n\
+    </Directory> \n\
+</VirtualHost>"
+
+RUN echo "${VHOST}" > /etc/apache2/sites-available/000-default.conf
+
+RUN sed -i "s/^Listen [0-9]*/Listen ${internal_port}/g" /etc/apache2/ports.conf
 
 RUN apt -y autoremove
 
 RUN apt clean
 
-EXPOSE 80
+EXPOSE ${internal_port}
 
-ENTRYPOINT service mysql start && /bin/bash
+ENTRYPOINT service apache2 start && /bin/bash
 
